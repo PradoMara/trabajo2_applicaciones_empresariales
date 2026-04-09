@@ -44,6 +44,7 @@ def get_clients() -> list[dict[str, str]]:
 				client_type,
 				updated_at
 			FROM clients
+			WHERE status != 'Inactivo'
 			ORDER BY updated_at DESC
 			"""
 		).fetchall()
@@ -87,6 +88,7 @@ def list_client_options() -> list[dict[str, str]]:
 			"""
 			SELECT id, name
 			FROM clients
+			WHERE status != 'Inactivo'
 			ORDER BY updated_at DESC
 			"""
 		).fetchall()
@@ -132,7 +134,8 @@ def search_clients(query: str) -> list[dict[str, str]]:
 			"""
 			SELECT id, name, email, phone, client_type, status, notes, created_at, updated_at
 			FROM clients
-			WHERE id LIKE ? OR name LIKE ? OR email LIKE ?
+			WHERE (id LIKE ? OR name LIKE ? OR email LIKE ?)
+				AND status != 'Inactivo'
 			ORDER BY updated_at DESC
 			LIMIT 20
 			""",
