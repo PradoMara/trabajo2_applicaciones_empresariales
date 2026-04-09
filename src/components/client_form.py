@@ -130,11 +130,11 @@ def render_delete_section() -> None:
 	selected_label = st.selectbox("Seleccionar cliente para eliminar", labels, key="delete_client")
 	selected_id = label_to_id[selected_label]
 
-	st.warning("Esta accion eliminara el cliente de forma permanente.")
+	st.warning("Esta accion marcara al cliente como Inactivo y dejara de mostrarse en el listado.")
 	confirmed = st.checkbox("Confirmo que deseo eliminar este cliente", key="delete_confirm")
 	if st.button("Eliminar cliente", type="primary", disabled=not confirmed, key="delete_submit"):
 		if delete_client(selected_id):
-			st.session_state["delete_success"] = "Cliente eliminado correctamente."
+			st.session_state["delete_success"] = "Cliente desactivado correctamente."
 			st.rerun()
 		else:
 			st.error("No se pudo eliminar el cliente seleccionado.")
