@@ -19,6 +19,17 @@ def _render_flash_message(key: str) -> None:
 
 
 def render_register_form() -> None:
+	if st.session_state.pop("reset_register_form", False):
+		for key in [
+			"register_name",
+			"register_email",
+			"register_phone",
+			"register_notes",
+			"register_type",
+			"register_status",
+		]:
+			st.session_state.pop(key, None)
+
 	_render_flash_message("register_success")
 	next_id = get_next_client_id()
 	c1, c2 = st.columns(2)
@@ -48,10 +59,7 @@ def render_register_form() -> None:
 		)
 
 		if success:
-			st.session_state["register_name"] = ""
-			st.session_state["register_email"] = ""
-			st.session_state["register_phone"] = ""
-			st.session_state["register_notes"] = ""
+			st.session_state["reset_register_form"] = True
 			st.session_state["register_success"] = message
 			st.rerun()
 		else:
