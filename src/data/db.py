@@ -258,7 +258,14 @@ def update_client(
 
 def delete_client(client_id: str) -> bool:
 	with get_connection() as connection:
-		cursor = connection.execute("DELETE FROM clients WHERE id = ?", (client_id,))
+		cursor = connection.execute(
+			"""
+			UPDATE clients
+			SET status = 'Inactivo', updated_at = CURRENT_TIMESTAMP
+			WHERE id = ?
+			""",
+			(client_id,),
+		)
 		connection.commit()
 
 	return cursor.rowcount > 0
