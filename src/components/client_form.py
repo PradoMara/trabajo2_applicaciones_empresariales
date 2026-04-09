@@ -134,7 +134,6 @@ def render_delete_section() -> None:
 	confirmed = st.checkbox("Confirmo que deseo eliminar este cliente", key="delete_confirm")
 	if st.button("Eliminar cliente", type="primary", disabled=not confirmed, key="delete_submit"):
 		if delete_client(selected_id):
-			st.session_state["delete_confirm"] = False
 			st.session_state["delete_success"] = "Cliente eliminado correctamente."
 			st.rerun()
 		else:
