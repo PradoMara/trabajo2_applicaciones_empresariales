@@ -4,6 +4,7 @@ from app.header import render_header
 from app.layout import configure_page, render_footer
 from app.sidebar import render_sidebar
 from components.metrics import render_metrics
+from data.db import init_db
 from styles.theme import apply_theme
 from views.delete_view import render_delete_view
 from views.get_view import render_get_view
@@ -13,6 +14,7 @@ from views.update_view import render_update_view
 
 
 def main() -> None:
+    init_db()
     configure_page()
     apply_theme()
 
