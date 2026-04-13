@@ -3,11 +3,11 @@ import streamlit as st
 from app.header import render_header
 from app.layout import configure_page, render_footer
 from app.sidebar import render_sidebar
-from components.client_table import render_clients_table
 from components.metrics import render_metrics
 from styles.theme import apply_theme
 from views.delete_view import render_delete_view
 from views.get_view import render_get_view
+from views.list_view import render_list_view
 from views.register_view import render_register_view
 from views.update_view import render_update_view
 
@@ -20,8 +20,8 @@ def main() -> None:
     render_metrics()
     render_sidebar()
 
-    tab_registrar, tab_actualizar, tab_obtener, tab_eliminar = st.tabs(
-        ["Registrar", "Actualizar", "Obtener", "Eliminar"]
+    tab_registrar, tab_actualizar, tab_obtener, tab_eliminar, tab_listado = st.tabs(
+        ["Registrar", "Actualizar", "Obtener", "Eliminar", "Ver clientes"]
     )
 
     with tab_registrar:
@@ -36,8 +36,9 @@ def main() -> None:
     with tab_eliminar:
         render_delete_view()
 
-    st.divider()
-    render_clients_table()
+    with tab_listado:
+        render_list_view()
+
     render_footer()
 
 

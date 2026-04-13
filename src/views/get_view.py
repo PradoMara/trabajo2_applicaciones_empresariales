@@ -1,7 +1,8 @@
 import streamlit as st
 import time
 
-from components.client_card import render_client_example_card
+from components.client_card import render_client_card
+from data.db import search_clients
 
 
 def render_get_view() -> None:
@@ -21,6 +22,9 @@ def render_get_view() -> None:
 		query = st.text_input(
 			"Buscar por ID exacto (Ej: CL001, CL002, CL003)",
 			placeholder="Ingrese ID del cliente",
+		query = st.text_input(
+			"Buscar por ID, nombre o correo",
+			placeholder="Ej. 1 o ana@email.com",
 			key="get_query",
 		)
 		if st.button("Buscar", type="primary", key="get_search"):
@@ -31,17 +35,21 @@ def render_get_view() -> None:
 				st.error("Por favor, ingrese un ID para buscar.")
 			else:
 				st.error(f"No se encontró ningún cliente con el ID '{query}'.")
+		search_clicked = st.button("Buscar", type="primary", key="get_search")
 
 	with c2:
 		if found_client:
 			st.info(f"Mostrando ficha de: {found_client['name']}")
 		else:
 			st.info("No hay nadie para mostrar.")
+		st.info("Busca un cliente real para ver su ficha.")
 
 	if found_client:
 		# Renderizamos la ficha con datos reales del encontrado
 		st.markdown(f"**Ficha de {found_client['name']}**")
 		ficha1, ficha2, ficha3 = st.columns(3)
+	if not search_clicked:
+		return
 
 		ficha1.markdown(
 			f"""
@@ -78,3 +86,18 @@ def render_get_view() -> None:
 	else:
 		st.write("---")
 		st.caption("Realiza una búsqueda válida para ver la información detallada.")
+
+	results = search_clients(query)
+	if not results:
+		st.warning("No se encontraron clientes con ese criterio.")
+		return
+
+	if len(results) == 1:
+		render_client_card(results[0])
+		return
+
+	st.caption(f"Se encontraron {len(results)} clientes. Selecciona uno:")
+	labels = [f"{item['name']} - {item['id']}" for item in results]
+	selected_label = st.selectbox("Resultados", labels, key="get_result")
+	selected_client = next(item for item in results if f"{item['name']} - {item['id']}" == selected_label)
+	render_client_card(selected_client)
