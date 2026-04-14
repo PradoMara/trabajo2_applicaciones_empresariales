@@ -22,7 +22,10 @@ def _is_valid_email(email: str) -> bool:
 
 
 def _is_valid_phone(phone: str) -> bool:
-	value = phone.replace(" ", "")
+	value = phone.replace(" ", "").strip()
+	if not value:
+		return True
+
 	return (
 		len(value) > 8
 		and (value.isdigit() or (value.startswith("+") and value[1:].isdigit()))
@@ -111,7 +114,7 @@ def render_register_form() -> None:
 			or not _is_valid_email(email)
 			or not _is_valid_phone(phone)
 		):
-			st.error("Error al registrar: Por favor, complete todos los campos correctamente.")
+			st.error("Error al registrar: Revisa los campos requeridos y su formato.")
 			return
 
 		success, message, _ = create_client(
@@ -209,7 +212,7 @@ def render_update_form() -> None:
 			or not _is_valid_email(new_email)
 			or not _is_valid_phone(new_phone)
 		):
-			st.error("Error al actualizar: Asegurate de completar todos los campos validos.")
+			st.error("Error al actualizar: Revisa los campos requeridos y su formato.")
 			return
 
 		has_changes = any(
