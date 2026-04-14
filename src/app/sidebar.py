@@ -1,4 +1,5 @@
 import streamlit as st
+from data.db import CLIENT_TYPE_OPTIONS
 
 
 def render_sidebar() -> dict:
@@ -11,7 +12,7 @@ def render_sidebar() -> dict:
 		)
 		segmento = st.selectbox(
 			"Segmento",
-			["Todos", "Nuevo", "Recurrente", "VIP"],
+			["Todos", *CLIENT_TYPE_OPTIONS],
 			key="filter_segmento",
 		)
 		busqueda = st.text_input(

@@ -3,6 +3,27 @@ from pathlib import Path
 
 
 DB_PATH = Path(__file__).resolve().parent / "clientes.db"
+CLIENT_TYPE_OPTIONS = ("Nuevo", "Recurrente", "VIP")
+_CLIENT_TYPE_LEGACY_MAP = {
+	"premium": "VIP",
+	"pyme": "Nuevo",
+	"corporativo": "Recurrente",
+}
+
+
+def _normalize_client_type(value: str) -> str | None:
+	text = value.strip()
+	if not text:
+		return None
+
+	if text in CLIENT_TYPE_OPTIONS:
+		return text
+
+	legacy_value = _CLIENT_TYPE_LEGACY_MAP.get(text.lower())
+	if legacy_value:
+		return legacy_value
+
+	return None
 
 
 def get_connection() -> sqlite3.Connection:
@@ -97,6 +118,17 @@ def init_db() -> None:
 			)
 			"""
 		)
+
+		# Normalize legacy segment values to canonical client_type options.
+		for legacy_value, canonical_value in _CLIENT_TYPE_LEGACY_MAP.items():
+			connection.execute(
+				"""
+				UPDATE clients
+				SET client_type = ?
+				WHERE LOWER(TRIM(client_type)) = ?
+				""",
+				(canonical_value, legacy_value),
+			)
 		connection.commit()
 
 
@@ -113,8 +145,11 @@ def get_clients(
 		params.append(estado)
 
 	if segmento != "Todos":
+		normalized_segmento = _normalize_client_type(segmento)
+		if normalized_segmento is None:
+			return []
 		conditions.append("client_type = ?")
-		params.append(segmento)
+		params.append(normalized_segmento)
 
 	text = busqueda.strip()
 	if text:
@@ -262,9 +297,13 @@ def create_client(
 ) -> tuple[bool, str, int | None]:
 	clean_name = name.strip()
 	clean_email = email.strip()
+	normalized_client_type = _normalize_client_type(client_type)
 
 	if not clean_name or not clean_email:
 		return False, "Nombre y correo son obligatorios.", None
+
+	if normalized_client_type is None:
+		return False, "Tipo de cliente no valido.", None
 
 	try:
 		with get_connection() as connection:
@@ -277,7 +316,7 @@ def create_client(
 					clean_name,
 					clean_email,
 					phone.strip(),
-					client_type,
+					normalized_client_type,
 					status,
 					notes.strip(),
 				),
@@ -303,6 +342,10 @@ def update_client(
 	if current_client is None:
 		return False, "El cliente seleccionado no existe."
 
+	normalized_client_type = _normalize_client_type(client_type)
+	if normalized_client_type is None:
+		return False, "Tipo de cliente no valido."
+
 	new_name = name.strip() or current_client["name"]
 	new_email = email.strip() or current_client["email"]
 	new_phone = phone.strip() if phone.strip() else current_client["phone"]
@@ -323,7 +366,15 @@ def update_client(
 					updated_at = CURRENT_TIMESTAMP
 				WHERE id = ?
 				""",
-				(new_name, new_email, new_phone, client_type, status, new_notes, client_id),
+				(
+					new_name,
+					new_email,
+					new_phone,
+					normalized_client_type,
+					status,
+					new_notes,
+					client_id,
+				),
 			)
 			connection.commit()
 	except sqlite3.IntegrityError:

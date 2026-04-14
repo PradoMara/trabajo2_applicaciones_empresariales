@@ -1,6 +1,7 @@
 import streamlit as st
 
 from data.db import (
+	CLIENT_TYPE_OPTIONS,
 	create_client,
 	delete_client,
 	get_client_by_id,
@@ -85,7 +86,7 @@ def render_register_form() -> None:
 
 	with c2:
 		st.info("El ID se asigna automaticamente al registrar.")
-		st.selectbox("Tipo de cliente", ["Nuevo", "Recurrente", "VIP"], key="register_type")
+		st.selectbox("Tipo de cliente", list(CLIENT_TYPE_OPTIONS), key="register_type")
 		st.selectbox(
 			"Estado del cliente",
 			["Activo", "Pendiente", "Inactivo"],
@@ -117,7 +118,7 @@ def render_register_form() -> None:
 			name,
 			email,
 			phone,
-			st.session_state.get("register_type", "Nuevo"),
+			st.session_state.get("register_type", CLIENT_TYPE_OPTIONS[0]),
 			st.session_state.get("register_status", "Pendiente"),
 			st.session_state.get("register_notes", ""),
 		)
@@ -184,7 +185,7 @@ def render_update_form() -> None:
 				st.error("El telefono debe contener unicamente numeros (o empezar con '+').")
 			elif len(phone_cleaned) <= 8:
 				st.warning("El telefono debe tener mas de 8 digitos.")
-		st.selectbox("Nuevo tipo", ["Nuevo", "Recurrente", "VIP"], key="update_type")
+		st.selectbox("Nuevo tipo", list(CLIENT_TYPE_OPTIONS), key="update_type")
 		st.selectbox("Nuevo estado", ["Activo", "Pendiente", "Inactivo"], key="update_status")
 
 	st.text_area(
