@@ -100,10 +100,35 @@ def init_db() -> None:
 		connection.commit()
 
 
-def get_clients() -> list[dict[str, str]]:
+def get_clients(
+	estado: str = "Todos",
+	segmento: str = "Todos",
+	busqueda: str = "",
+) -> list[dict[str, str]]:
+	conditions: list[str] = []
+	params: list[str] = []
+
+	if estado != "Todos":
+		conditions.append("status = ?")
+		params.append(estado)
+
+	if segmento != "Todos":
+		conditions.append("client_type = ?")
+		params.append(segmento)
+
+	text = busqueda.strip()
+	if text:
+		like_query = f"%{text}%"
+		conditions.append("(CAST(id AS TEXT) LIKE ? OR name LIKE ? OR email LIKE ?)")
+		params.extend([like_query, like_query, like_query])
+
+	where_clause = ""
+	if conditions:
+		where_clause = "WHERE " + " AND ".join(conditions)
+
 	with get_connection() as connection:
 		rows = connection.execute(
-			"""
+			f"""
 			SELECT
 				id,
 				name,
@@ -111,9 +136,11 @@ def get_clients() -> list[dict[str, str]]:
 				client_type,
 				updated_at
 			FROM clients
-			WHERE status != 'Inactivo'
+			{where_clause}
 			ORDER BY updated_at DESC
 			"""
+			,
+			params,
 		).fetchall()
 
 	return [

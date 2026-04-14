@@ -20,7 +20,7 @@ def main() -> None:
 
     render_header()
     render_metrics()
-    render_sidebar()
+    filters = render_sidebar()
 
     tab_registrar, tab_actualizar, tab_obtener, tab_eliminar, tab_listado = st.tabs(
         ["Registrar", "Actualizar", "Obtener", "Eliminar", "Ver clientes"]
@@ -39,7 +39,7 @@ def main() -> None:
         render_delete_view()
 
     with tab_listado:
-        render_list_view()
+        render_list_view(filters)
 
     render_footer()
 
