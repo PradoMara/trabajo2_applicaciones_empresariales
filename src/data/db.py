@@ -348,8 +348,9 @@ def update_client(
 
 	new_name = name.strip() or current_client["name"]
 	new_email = email.strip() or current_client["email"]
-	new_phone = phone.strip() if phone.strip() else current_client["phone"]
-	new_notes = notes.strip() if notes.strip() else current_client["notes"]
+	# Optional fields can be explicitly cleared by submitting them empty.
+	new_phone = phone.strip()
+	new_notes = notes.strip()
 
 	try:
 		with get_connection() as connection:
