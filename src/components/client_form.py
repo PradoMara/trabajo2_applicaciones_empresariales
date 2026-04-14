@@ -92,7 +92,7 @@ def render_register_form() -> None:
 		st.selectbox("Tipo de cliente", list(CLIENT_TYPE_OPTIONS), key="register_type")
 		st.selectbox(
 			"Estado del cliente",
-			["Activo", "Pendiente", "Inactivo"],
+			["Activo", "Pendiente"],
 			key="register_status",
 		)
 

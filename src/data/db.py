@@ -297,6 +297,7 @@ def create_client(
 ) -> tuple[bool, str, int | None]:
 	clean_name = name.strip()
 	clean_email = email.strip()
+	clean_status = status.strip()
 	normalized_client_type = _normalize_client_type(client_type)
 
 	if not clean_name or not clean_email:
@@ -304,6 +305,9 @@ def create_client(
 
 	if normalized_client_type is None:
 		return False, "Tipo de cliente no valido.", None
+
+	if clean_status == "Inactivo":
+		return False, "No se puede registrar un cliente con estado Inactivo.", None
 
 	try:
 		with get_connection() as connection:
@@ -317,7 +321,7 @@ def create_client(
 					clean_email,
 					phone.strip(),
 					normalized_client_type,
-					status,
+					clean_status,
 					notes.strip(),
 				),
 			)
