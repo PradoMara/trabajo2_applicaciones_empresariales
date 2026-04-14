@@ -4,7 +4,6 @@ from data.db import (
 	create_client,
 	delete_client,
 	get_client_by_id,
-	get_next_client_id,
 	list_client_options,
 	update_client,
 )
@@ -58,7 +57,6 @@ def render_register_form() -> None:
 			st.session_state.pop(key, None)
 
 	_render_flash_message("register_success")
-	next_id = get_next_client_id()
 	c1, c2 = st.columns(2)
 
 	with c1:
@@ -86,7 +84,7 @@ def render_register_form() -> None:
 				st.warning("El telefono debe tener mas de 8 digitos.")
 
 	with c2:
-		st.info(f"ID asignado automaticamente: {next_id}")
+		st.info("El ID se asigna automaticamente al registrar.")
 		st.selectbox("Tipo de cliente", ["Nuevo", "Recurrente", "VIP"], key="register_type")
 		st.selectbox(
 			"Estado del cliente",

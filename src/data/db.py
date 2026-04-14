@@ -15,10 +15,68 @@ def get_connection() -> sqlite3.Connection:
 def init_db() -> None:
 	"""Create required tables if they do not exist yet."""
 	with get_connection() as connection:
+		# Ensure the clients table uses an autoincrement integer primary key.
+		clients_table_exists = connection.execute(
+			"""
+			SELECT 1
+			FROM sqlite_master
+			WHERE type = 'table' AND name = 'clients'
+			"""
+		).fetchone()
+
+		if clients_table_exists:
+			id_column = connection.execute("PRAGMA table_info(clients)").fetchall()
+			id_info = next((row for row in id_column if row["name"] == "id"), None)
+			uses_autoincrement_id = (
+				id_info is not None
+				and id_info["type"].upper() == "INTEGER"
+				and id_info["pk"] == 1
+			)
+
+			if not uses_autoincrement_id:
+				connection.execute(
+					"""
+					CREATE TABLE clients_new (
+						id INTEGER PRIMARY KEY AUTOINCREMENT,
+						name TEXT NOT NULL,
+						email TEXT UNIQUE NOT NULL,
+						phone TEXT,
+						client_type TEXT NOT NULL,
+						status TEXT NOT NULL,
+						notes TEXT,
+						created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+						updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+					)
+					"""
+				)
+
+				connection.execute(
+					"""
+					INSERT INTO clients_new (id, name, email, phone, client_type, status, notes, created_at, updated_at)
+					SELECT
+						CASE
+							WHEN id GLOB '[0-9]*' THEN CAST(id AS INTEGER)
+							ELSE NULL
+						END,
+						name,
+						email,
+						phone,
+						client_type,
+						status,
+						notes,
+						created_at,
+						updated_at
+					FROM clients
+					"""
+				)
+
+				connection.execute("DROP TABLE clients")
+				connection.execute("ALTER TABLE clients_new RENAME TO clients")
+
 		connection.execute(
 			"""
 			CREATE TABLE IF NOT EXISTS clients (
-				id TEXT PRIMARY KEY,
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				name TEXT NOT NULL,
 				email TEXT UNIQUE NOT NULL,
 				phone TEXT,
@@ -93,7 +151,7 @@ def list_client_options() -> list[dict[str, str]]:
 			"""
 		).fetchall()
 
-	return [{"id": row["id"], "label": f"{row['name']} - {row['id']}"} for row in rows]
+	return [{"id": str(row["id"]), "label": f"{row['name']} - {row['id']}"} for row in rows]
 
 
 def get_client_by_id(client_id: str) -> dict[str, str] | None:
@@ -158,26 +216,6 @@ def search_clients(query: str) -> list[dict[str, str]]:
 	]
 
 
-def get_next_client_id() -> int:
-	with get_connection() as connection:
-		max_id = connection.execute(
-			"""
-			SELECT MAX(
-				CASE
-					WHEN id GLOB '[0-9]*' THEN CAST(id AS INTEGER)
-					ELSE 0
-				END
-			) AS max_numeric_id
-			FROM clients
-			"""
-		).fetchone()[0]
-
-	if max_id is None:
-		return 1
-
-	return int(max_id) + 1
-
-
 def create_client(
 	name: str,
 	email: str,
@@ -186,7 +224,6 @@ def create_client(
 	status: str,
 	notes: str,
 ) -> tuple[bool, str, int | None]:
-	new_id = get_next_client_id()
 	clean_name = name.strip()
 	clean_email = email.strip()
 
@@ -195,13 +232,12 @@ def create_client(
 
 	try:
 		with get_connection() as connection:
-			connection.execute(
+			cursor = connection.execute(
 				"""
-				INSERT INTO clients (id, name, email, phone, client_type, status, notes)
-				VALUES (?, ?, ?, ?, ?, ?, ?)
+				INSERT INTO clients (name, email, phone, client_type, status, notes)
+				VALUES (?, ?, ?, ?, ?, ?)
 				""",
 				(
-					str(new_id),
 					clean_name,
 					clean_email,
 					phone.strip(),
@@ -210,6 +246,7 @@ def create_client(
 					notes.strip(),
 				),
 			)
+			new_id = cursor.lastrowid
 			connection.commit()
 	except sqlite3.IntegrityError:
 		return False, "No se pudo registrar: el correo ya existe.", None
