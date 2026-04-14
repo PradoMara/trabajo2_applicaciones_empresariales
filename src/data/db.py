@@ -27,10 +27,19 @@ def init_db() -> None:
 		if clients_table_exists:
 			id_column = connection.execute("PRAGMA table_info(clients)").fetchall()
 			id_info = next((row for row in id_column if row["name"] == "id"), None)
+			table_sql_row = connection.execute(
+				"""
+				SELECT sql
+				FROM sqlite_master
+				WHERE type = 'table' AND name = 'clients'
+				"""
+			).fetchone()
+			table_sql = (table_sql_row["sql"] or "").upper() if table_sql_row else ""
 			uses_autoincrement_id = (
 				id_info is not None
 				and id_info["type"].upper() == "INTEGER"
 				and id_info["pk"] == 1
+				and "AUTOINCREMENT" in table_sql
 			)
 
 			if not uses_autoincrement_id:
@@ -109,7 +118,7 @@ def get_clients() -> list[dict[str, str]]:
 
 	return [
 		{
-			"ID": row["id"],
+			"ID": str(row["id"]),
 			"Nombre": row["name"],
 			"Estado": row["status"],
 			"Tipo": row["client_type"],
@@ -169,7 +178,7 @@ def get_client_by_id(client_id: str) -> dict[str, str] | None:
 		return None
 
 	return {
-		"id": row["id"],
+		"id": str(row["id"]),
 		"name": row["name"],
 		"email": row["email"],
 		"phone": row["phone"] or "",
