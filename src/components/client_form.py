@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 
 from data.db import (
@@ -17,8 +18,17 @@ def _render_flash_message(key: str) -> None:
 
 
 def _is_valid_email(email: str) -> bool:
+	"""
+	Valida el formato de un correo electrónico usando expresiones regulares
+	para permitir cualquier dominio válido.
+	"""
 	value = email.strip()
-	return "@" in value and (value.endswith(".com") or value.endswith(".cl"))
+	if not value:
+		return False
+	
+	# Expresión regular para validar correos electrónicos estándar
+	pattern = r'^[a-zA-Z0-9._%+-]+@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$'
+	return bool(re.match(pattern, value))
 
 
 def _is_valid_phone(phone: str) -> bool:
