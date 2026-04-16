@@ -136,9 +136,11 @@ def get_clients(
 	estado: str = "Todos",
 	segmento: str = "Todos",
 	busqueda: str = "",
+	limit: int | None = None,
+	offset: int = 0,
 ) -> list[dict[str, str]]:
 	conditions: list[str] = []
-	params: list[str] = []
+	params: list[Any] = []
 
 	if estado != "Todos":
 		conditions.append("status = ?")
@@ -166,6 +168,11 @@ def get_clients(
 	if conditions:
 		where_clause = "WHERE " + " AND ".join(conditions)
 
+	limit_clause = ""
+	if limit is not None:
+		limit_clause = f"LIMIT ? OFFSET ?"
+		params.extend([limit, offset])
+
 	with get_connection() as connection:
 		rows = connection.execute(
 			f"""
@@ -178,6 +185,7 @@ def get_clients(
 			FROM clients
 			{where_clause}
 			ORDER BY updated_at DESC
+			{limit_clause}
 			"""
 			,
 			params,
@@ -193,6 +201,46 @@ def get_clients(
 		}
 		for row in rows
 	]
+
+
+def count_clients(
+	estado: str = "Todos",
+	segmento: str = "Todos",
+	busqueda: str = "",
+) -> int:
+	"""Retorna el número total de clientes que coinciden con los filtros (para paginación)."""
+	conditions: list[str] = []
+	params: list[Any] = []
+
+	if estado != "Todos":
+		conditions.append("status = ?")
+		params.append(estado)
+
+	if segmento != "Todos":
+		normalized_segmento = _normalize_client_type(segmento)
+		if normalized_segmento is None:
+			return 0
+		conditions.append("client_type = ?")
+		params.append(normalized_segmento)
+
+	text = busqueda.strip()
+	if text:
+		escaped_text = text.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+		like_query = f"%{escaped_text}%"
+		conditions.append(
+			"(CAST(id AS TEXT) LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\')"
+		)
+		params.extend([like_query, like_query, like_query])
+
+	where_clause = ""
+	if conditions:
+		where_clause = "WHERE " + " AND ".join(conditions)
+
+	with get_connection() as connection:
+		row = connection.execute(
+			f"SELECT COUNT(*) FROM clients {where_clause}", params
+		).fetchone()
+	return row[0] if row else 0
 
 
 def get_metrics() -> dict[str, int]:
