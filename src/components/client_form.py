@@ -43,18 +43,33 @@ def _is_valid_phone(phone: str) -> bool:
 
 
 def _is_valid_name(name: str, allow_digits: bool) -> bool:
+	"""
+	Valida que el nombre tenga una longitud adecuada (3-30 caracteres),
+	contenga al menos una letra y respete la restricción de dígitos.
+	"""
 	value = name.strip()
-	if not value:
+	
+	#Validacion Longitud nombre
+	if len(value) < 3 or len(value) > 30:
 		return False
 
+	# Debe contener al menos una letra
 	has_letter = any(char.isalpha() for char in value)
 	if not has_letter:
 		return False
 
+	# Si no se permiten dígitos (persona natural), no debe tener números
 	if not allow_digits and any(char.isdigit() for char in value):
 		return False
-
-	return True
+	
+	# No permitir caracteres especiales problemáticos (permitir espacios, puntos, tildes y ñ)
+	# Solo permite letras, números (si allow_digits es True), espacios y signos básicos de puntuación
+	if allow_digits:
+		pattern = r'^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\.]+$'
+	else:
+		pattern = r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\.]+$'
+		
+	return bool(re.match(pattern, value))
 
 
 def render_register_form() -> None:
@@ -80,11 +95,23 @@ def render_register_form() -> None:
 			key="register_allow_digits_name",
 		)
 		name = st.session_state.get("register_name", "")
-		if name and not _is_valid_name(name, allow_digits_name):
-			st.error("El nombre no puede incluir numeros salvo que marques que es empresa.")
+		name_is_valid = _is_valid_name(name, allow_digits_name)
+		if name:
+			if not name_is_valid:
+				if len(name.strip()) < 3:
+					st.error("El nombre debe tener al menos 3 caracteres.")
+				elif len(name.strip()) > 30:
+					st.error("El nombre no puede exceder los 30 caracteres.")
+				elif not any(char.isalpha() for char in name):
+					st.error("El nombre debe contener al menos una letra.")
+				elif not allow_digits_name and any(char.isdigit() for char in name):
+					st.error("El nombre no puede incluir números salvo que marques que es empresa.")
+				else:
+					st.error("El nombre solo puede contener letras, números (si es empresa), espacios y puntos.")
+		
 		email = st.text_input("Correo electronico", key="register_email")
 		if email and not _is_valid_email(email):
-			st.error("El correo debe incluir '@' y terminar en '.com' o '.cl'.")
+			st.error("El formato del correo no es válido.")
 
 		phone = st.text_input("Telefono", key="register_phone")
 		if phone:
@@ -181,11 +208,23 @@ def render_update_form() -> None:
 			key="update_allow_digits_name",
 		)
 		name = st.session_state.get("update_name", "")
-		if name and not _is_valid_name(name, allow_digits_name):
-			st.error("El nombre no puede incluir numeros salvo que marques que es empresa.")
+		name_is_valid = _is_valid_name(name, allow_digits_name)
+		if name:
+			if not name_is_valid:
+				if len(name.strip()) < 3:
+					st.error("El nombre debe tener al menos 3 caracteres.")
+				elif len(name.strip()) > 100:
+					st.error("El nombre no puede exceder los 100 caracteres.")
+				elif not any(char.isalpha() for char in name):
+					st.error("El nombre debe contener al menos una letra.")
+				elif not allow_digits_name and any(char.isdigit() for char in name):
+					st.error("El nombre no puede incluir números salvo que marques que es empresa.")
+				else:
+					st.error("El nombre solo puede contener letras, números (si es empresa), espacios y puntos.")
+		
 		email = st.text_input("Nuevo correo", key="update_email")
 		if email and not _is_valid_email(email):
-			st.error("El correo debe incluir '@' y terminar en '.com' o '.cl'.")
+			st.error("El formato del correo no es válido.")
 
 	with c2:
 		phone = st.text_input("Nuevo telefono", key="update_phone")
