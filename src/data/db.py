@@ -153,8 +153,13 @@ def get_clients(
 
 	text = busqueda.strip()
 	if text:
-		like_query = f"%{text}%"
-		conditions.append("(CAST(id AS TEXT) LIKE ? OR name LIKE ? OR email LIKE ?)")
+		# Escapar caracteres especiales de SQLite LIKE (Tarea 10)
+		# Se usa '\' como carácter de escape
+		escaped_text = text.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+		like_query = f"%{escaped_text}%"
+		conditions.append(
+			"(CAST(id AS TEXT) LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\')"
+		)
 		params.extend([like_query, like_query, like_query])
 
 	where_clause = ""
