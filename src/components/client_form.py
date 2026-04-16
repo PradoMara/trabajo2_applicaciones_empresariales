@@ -137,7 +137,7 @@ def render_register_form() -> None:
 		"Observaciones",
 		placeholder="Notas internas sobre el cliente",
 		key="register_notes",
-		max_chars=800,
+		max_chars=300,
 	)
 
 	if st.button("Registrar cliente", type="primary", key="register_submit"):

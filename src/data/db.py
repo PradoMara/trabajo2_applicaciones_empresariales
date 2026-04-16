@@ -309,6 +309,10 @@ def create_client(
 	if clean_status == "Inactivo":
 		return False, "No se puede registrar un cliente con estado Inactivo.", None
 
+	# Validación de longitud de observaciones en backend
+	if notes and len(notes.strip()) > 300:
+		return False, f"Las observaciones no pueden exceder los 300 caracteres. (Actual: {len(notes.strip())})", None
+
 	try:
 		with get_connection() as connection:
 			cursor = connection.execute(
@@ -355,6 +359,10 @@ def update_client(
 	# Optional fields can be explicitly cleared by submitting them empty.
 	new_phone = phone.strip()
 	new_notes = notes.strip()
+
+	# Validación de longitud de observaciones en backend 
+	if new_notes and len(new_notes) > 300:
+		return False, f"Las observaciones no pueden exceder los 300 caracteres. (Actual: {len(new_notes)})"
 
 	try:
 		with get_connection() as connection:
