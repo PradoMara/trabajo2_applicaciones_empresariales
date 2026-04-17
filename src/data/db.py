@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from pathlib import Path
 from typing import Any
 
@@ -120,6 +121,21 @@ def init_db() -> None:
 			"""
 		)
 
+		connection.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS client_audit_log (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				client_id INTEGER NOT NULL,
+				action TEXT NOT NULL,
+				changed_fields TEXT NOT NULL,
+				previous_values TEXT,
+				new_values TEXT,
+				reason TEXT,
+				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+			)
+			"""
+		)
+
 		# Normalize legacy segment values to canonical client_type options.
 		for legacy_value, canonical_value in _CLIENT_TYPE_LEGACY_MAP.items():
 			connection.execute(
@@ -131,6 +147,38 @@ def init_db() -> None:
 				(canonical_value, legacy_value),
 			)
 		connection.commit()
+
+
+def _log_client_audit_event(
+	connection: sqlite3.Connection,
+	client_id: str,
+	action: str,
+	changed_fields: list[str],
+	previous_values: dict[str, str],
+	new_values: dict[str, str],
+	reason: str,
+) -> None:
+	connection.execute(
+		"""
+		INSERT INTO client_audit_log (
+			client_id,
+			action,
+			changed_fields,
+			previous_values,
+			new_values,
+			reason
+		)
+		VALUES (?, ?, ?, ?, ?, ?)
+		""",
+		(
+			client_id,
+			action,
+			", ".join(changed_fields),
+			json.dumps(previous_values, ensure_ascii=True),
+			json.dumps(new_values, ensure_ascii=True),
+			reason.strip(),
+		),
+	)
 
 
 def get_clients(
@@ -279,6 +327,19 @@ def list_client_options() -> list[dict[str, str]]:
 	return [{"id": str(row["id"]), "label": f"{row['name']} - {row['id']}"} for row in rows]
 
 
+def list_all_client_options() -> list[dict[str, str]]:
+	with get_connection() as connection:
+		rows = connection.execute(
+			"""
+			SELECT id, name
+			FROM clients
+			ORDER BY updated_at DESC
+			"""
+		).fetchall()
+
+	return [{"id": str(row["id"]), "label": f"{row['name']} - {row['id']}"} for row in rows]
+
+
 def list_inactive_client_options() -> list[dict[str, str]]:
 	with get_connection() as connection:
 		rows = connection.execute(
@@ -413,6 +474,7 @@ def update_client(
 	client_type: str,
 	status: str,
 	notes: str,
+	audit_reason: str,
 ) -> tuple[bool, str]:
 	current_client = get_client_by_id(client_id)
 	if current_client is None:
@@ -427,10 +489,37 @@ def update_client(
 	# Optional fields can be explicitly cleared by submitting them empty.
 	new_phone = phone.strip()
 	new_notes = notes.strip()
+	clean_audit_reason = audit_reason.strip()
+	if not clean_audit_reason:
+		return False, "Debe ingresar el motivo del cambio para el historial."
 
 	# Validación de longitud de observaciones en backend 
 	if new_notes and len(new_notes) > 300:
 		return False, f"Las observaciones no pueden exceder los 300 caracteres. (Actual: {len(new_notes)})"
+
+	previous_values = {
+		"name": current_client["name"],
+		"email": current_client["email"],
+		"phone": current_client["phone"],
+		"client_type": current_client["client_type"],
+		"status": current_client["status"],
+		"notes": current_client["notes"],
+	}
+	new_values = {
+		"name": new_name,
+		"email": new_email,
+		"phone": new_phone,
+		"client_type": normalized_client_type,
+		"status": status,
+		"notes": new_notes,
+	}
+	changed_fields = [
+		field
+		for field in previous_values
+		if str(previous_values[field]) != str(new_values[field])
+	]
+	if not changed_fields:
+		return False, "No se detectaron cambios para registrar."
 
 	try:
 		with get_connection() as connection:
@@ -457,6 +546,15 @@ def update_client(
 					client_id,
 				),
 			)
+			_log_client_audit_event(
+				connection=connection,
+				client_id=client_id,
+				action="Actualizacion",
+				changed_fields=changed_fields,
+				previous_values={field: previous_values[field] for field in changed_fields},
+				new_values={field: new_values[field] for field in changed_fields},
+				reason=clean_audit_reason,
+			)
 			connection.commit()
 	except sqlite3.IntegrityError:
 		return False, "No se pudo actualizar: el correo ya esta en uso."
@@ -465,6 +563,10 @@ def update_client(
 
 
 def delete_client(client_id: str) -> bool:
+	current_client = get_client_by_id(client_id)
+	if current_client is None:
+		return False
+
 	with get_connection() as connection:
 		cursor = connection.execute(
 			"""
@@ -474,12 +576,26 @@ def delete_client(client_id: str) -> bool:
 			""",
 			(client_id,),
 		)
+		if cursor.rowcount > 0:
+			_log_client_audit_event(
+				connection=connection,
+				client_id=client_id,
+				action="Desactivacion",
+				changed_fields=["status"],
+				previous_values={"status": current_client["status"]},
+				new_values={"status": "Inactivo"},
+				reason="Cliente marcado como inactivo desde la pestaña Eliminar.",
+			)
 		connection.commit()
 
 	return cursor.rowcount > 0
 
 
 def reactivate_client(client_id: str) -> bool:
+	current_client = get_client_by_id(client_id)
+	if current_client is None:
+		return False
+
 	with get_connection() as connection:
 		cursor = connection.execute(
 			"""
@@ -489,7 +605,52 @@ def reactivate_client(client_id: str) -> bool:
 			""",
 			(client_id,),
 		)
+		if cursor.rowcount > 0:
+			_log_client_audit_event(
+				connection=connection,
+				client_id=client_id,
+				action="Reactivacion",
+				changed_fields=["status"],
+				previous_values={"status": current_client["status"]},
+				new_values={"status": "Activo"},
+				reason="Cliente reactivado desde la pestaña Reactivar.",
+			)
 		connection.commit()
 
 	return cursor.rowcount > 0
+
+
+def get_client_audit_log(client_id: str) -> list[dict[str, str]]:
+	with get_connection() as connection:
+		rows = connection.execute(
+			"""
+			SELECT action, changed_fields, previous_values, new_values, reason, created_at
+			FROM client_audit_log
+			WHERE client_id = ?
+			ORDER BY created_at DESC, id DESC
+			""",
+			(client_id,),
+		).fetchall()
+
+	parsed_rows: list[dict[str, str]] = []
+	for row in rows:
+		previous_values = json.loads(row["previous_values"] or "{}")
+		new_values = json.loads(row["new_values"] or "{}")
+		changes_text_parts: list[str] = []
+		for field in previous_values:
+			old_value = previous_values.get(field, "")
+			new_value = new_values.get(field, "")
+			changes_text_parts.append(f"{field}: '{old_value}' -> '{new_value}'")
+
+		parsed_rows.append(
+			{
+				"Fecha": row["created_at"],
+				"Accion": row["action"],
+				"Campos modificados": row["changed_fields"],
+				"Detalle": " | ".join(changes_text_parts),
+				"Motivo": row["reason"] or "Sin motivo",
+			}
+		)
+
+	return parsed_rows
 

@@ -5,7 +5,9 @@ from data.db import (
 	CLIENT_TYPE_OPTIONS,
 	create_client,
 	delete_client,
+	get_client_audit_log,
 	get_client_by_id,
+	list_all_client_options,
 	list_inactive_client_options,
 	list_client_options,
 	reactivate_client,
@@ -243,10 +245,16 @@ def render_update_form() -> None:
 		st.selectbox("Nuevo estado", ["Activo", "Pendiente", "Inactivo"], key="update_status")
 
 	st.text_area(
-		"Motivo de actualizacion",
-		placeholder="Explica el cambio a realizar",
+		"Observaciones del cliente",
+		placeholder="Notas internas sobre el cliente",
 		key="update_reason",
 		max_chars=800,
+	)
+	st.text_area(
+		"Motivo del cambio (auditoria)",
+		placeholder="Describe por que se realiza esta modificacion",
+		key="update_audit_reason",
+		max_chars=300,
 	)
 
 	if st.button("Actualizar cliente", type="primary", key="update_submit"):
@@ -257,6 +265,7 @@ def render_update_form() -> None:
 		new_type = st.session_state.get("update_type", selected_client["client_type"])
 		new_status = st.session_state.get("update_status", selected_client["status"])
 		new_notes = st.session_state.get("update_reason", selected_client["notes"])
+		audit_reason = st.session_state.get("update_audit_reason", "")
 
 		if (
 			not _is_valid_name(new_name, allow_digits_name)
@@ -288,6 +297,7 @@ def render_update_form() -> None:
 			new_type,
 			new_status,
 			new_notes,
+			audit_reason,
 		)
 		if success:
 			st.session_state["update_success"] = message
@@ -338,3 +348,22 @@ def render_reactivate_section() -> None:
 			st.rerun()
 		else:
 			st.error("No se pudo reactivar el cliente seleccionado.")
+
+
+def render_audit_log_section() -> None:
+	options = list_all_client_options()
+	if not options:
+		st.info("No hay clientes registrados para consultar historial.")
+		return
+
+	labels = [item["label"] for item in options]
+	label_to_id = {item["label"]: item["id"] for item in options}
+	selected_label = st.selectbox("Seleccionar cliente", labels, key="audit_client")
+	selected_id = label_to_id[selected_label]
+
+	logs = get_client_audit_log(selected_id)
+	if not logs:
+		st.info("Este cliente aun no tiene cambios auditados.")
+		return
+
+	st.dataframe(logs, use_container_width=True, hide_index=True)
