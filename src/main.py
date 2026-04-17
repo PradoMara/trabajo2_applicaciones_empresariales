@@ -2,7 +2,6 @@ import streamlit as st
 
 from app.header import render_header
 from app.layout import configure_page, render_footer
-from app.sidebar import render_sidebar
 from components.metrics import render_metrics
 from data.db import init_db
 from styles.theme import apply_theme
@@ -21,7 +20,6 @@ def main() -> None:
 
     render_header()
     render_metrics()
-    filters = render_sidebar()
 
     tab_registrar, tab_actualizar, tab_obtener, tab_eliminar, tab_reactivar, tab_listado = st.tabs(
         ["Registrar", "Actualizar", "Obtener", "Eliminar", "Reactivar", "Ver clientes"]
@@ -43,7 +41,7 @@ def main() -> None:
         render_reactivate_view()
 
     with tab_listado:
-        render_list_view(filters)
+        render_list_view()
 
     render_footer()
 

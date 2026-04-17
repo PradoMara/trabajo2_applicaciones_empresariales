@@ -3,23 +3,28 @@ from data.db import CLIENT_TYPE_OPTIONS
 
 
 def render_sidebar() -> dict:
-	with st.sidebar:
-		st.header("Filtros")
+	st.markdown("### Filtros")
+	c1, c2 = st.columns(2)
+
+	with c1:
 		estado = st.selectbox(
 			"Estado",
 			["Todos", "Activo", "Pendiente", "Inactivo"],
 			key="filter_estado",
 		)
+
+	with c2:
 		segmento = st.selectbox(
 			"Segmento",
 			["Todos", *CLIENT_TYPE_OPTIONS],
 			key="filter_segmento",
 		)
-		busqueda = st.text_input(
-			"Buscar cliente",
-			placeholder="Nombre, email o ID",
-			key="filter_busqueda",
-		)
+
+	busqueda = st.text_input(
+		"Buscar cliente",
+		placeholder="Nombre, email o ID",
+		key="filter_busqueda",
+	)
 
 	return {
 		"estado": estado,
