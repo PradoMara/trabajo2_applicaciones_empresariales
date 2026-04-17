@@ -9,6 +9,7 @@ from styles.theme import apply_theme
 from views.delete_view import render_delete_view
 from views.get_view import render_get_view
 from views.list_view import render_list_view
+from views.reactivate_view import render_reactivate_view
 from views.register_view import render_register_view
 from views.update_view import render_update_view
 
@@ -22,8 +23,8 @@ def main() -> None:
     render_metrics()
     filters = render_sidebar()
 
-    tab_registrar, tab_actualizar, tab_obtener, tab_eliminar, tab_listado = st.tabs(
-        ["Registrar", "Actualizar", "Obtener", "Eliminar", "Ver clientes"]
+    tab_registrar, tab_actualizar, tab_obtener, tab_eliminar, tab_reactivar, tab_listado = st.tabs(
+        ["Registrar", "Actualizar", "Obtener", "Eliminar", "Reactivar", "Ver clientes"]
     )
 
     with tab_registrar:
@@ -37,6 +38,9 @@ def main() -> None:
 
     with tab_eliminar:
         render_delete_view()
+
+    with tab_reactivar:
+        render_reactivate_view()
 
     with tab_listado:
         render_list_view(filters)

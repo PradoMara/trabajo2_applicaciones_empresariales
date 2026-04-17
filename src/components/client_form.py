@@ -6,7 +6,9 @@ from data.db import (
 	create_client,
 	delete_client,
 	get_client_by_id,
+	list_inactive_client_options,
 	list_client_options,
+	reactivate_client,
 	update_client,
 )
 
@@ -314,3 +316,25 @@ def render_delete_section() -> None:
 			st.rerun()
 		else:
 			st.error("No se pudo eliminar el cliente seleccionado.")
+
+
+def render_reactivate_section() -> None:
+	_render_flash_message("reactivate_success")
+	options = list_inactive_client_options()
+	if not options:
+		st.info("No hay clientes inactivos para reactivar.")
+		return
+
+	labels = [item["label"] for item in options]
+	label_to_id = {item["label"]: item["id"] for item in options}
+	selected_label = st.selectbox("Seleccionar cliente para reactivar", labels, key="reactivate_client")
+	selected_id = label_to_id[selected_label]
+
+	st.info("Esta accion cambiara el estado del cliente a Activo.")
+	confirmed = st.checkbox("Confirmo que deseo reactivar este cliente", key="reactivate_confirm")
+	if st.button("Reactivar cliente", type="primary", disabled=not confirmed, key="reactivate_submit"):
+		if reactivate_client(selected_id):
+			st.session_state["reactivate_success"] = "Cliente reactivado correctamente."
+			st.rerun()
+		else:
+			st.error("No se pudo reactivar el cliente seleccionado.")

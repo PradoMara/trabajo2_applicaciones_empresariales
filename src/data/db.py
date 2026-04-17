@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from typing import Any
 
 
 DB_PATH = Path(__file__).resolve().parent / "clientes.db"
@@ -278,6 +279,20 @@ def list_client_options() -> list[dict[str, str]]:
 	return [{"id": str(row["id"]), "label": f"{row['name']} - {row['id']}"} for row in rows]
 
 
+def list_inactive_client_options() -> list[dict[str, str]]:
+	with get_connection() as connection:
+		rows = connection.execute(
+			"""
+			SELECT id, name
+			FROM clients
+			WHERE status = 'Inactivo'
+			ORDER BY updated_at DESC
+			"""
+		).fetchall()
+
+	return [{"id": str(row["id"]), "label": f"{row['name']} - {row['id']}"} for row in rows]
+
+
 def get_client_by_id(client_id: str) -> dict[str, str] | None:
 	with get_connection() as connection:
 		row = connection.execute(
@@ -456,6 +471,21 @@ def delete_client(client_id: str) -> bool:
 			UPDATE clients
 			SET status = 'Inactivo', updated_at = CURRENT_TIMESTAMP
 			WHERE id = ?
+			""",
+			(client_id,),
+		)
+		connection.commit()
+
+	return cursor.rowcount > 0
+
+
+def reactivate_client(client_id: str) -> bool:
+	with get_connection() as connection:
+		cursor = connection.execute(
+			"""
+			UPDATE clients
+			SET status = 'Activo', updated_at = CURRENT_TIMESTAMP
+			WHERE id = ? AND status = 'Inactivo'
 			""",
 			(client_id,),
 		)
