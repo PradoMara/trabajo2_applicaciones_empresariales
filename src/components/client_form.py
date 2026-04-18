@@ -5,6 +5,7 @@ from data.db import (
 	CLIENT_TYPE_OPTIONS,
 	create_client,
 	deactivate_client,
+	delete_client_permanently,
 	get_client_audit_log,
 	get_client_by_id,
 	list_all_client_options,
@@ -367,3 +368,25 @@ def render_audit_log_section() -> None:
 		return
 
 	st.dataframe(logs, use_container_width=True, hide_index=True)
+
+def render_delete_permanent_section() -> None:
+	_render_flash_message("delete_permanent_success")
+	options = list_all_client_options()
+	if not options:
+		st.info("No hay clientes en la base de datos.")
+		return
+
+	labels = [item["label"] for item in options]
+	label_to_id = {item["label"]: item["id"] for item in options}
+	selected_label = st.selectbox("Seleccionar cliente para eliminar", labels, key="delete_perm_client")
+	selected_id = label_to_id[selected_label]
+
+	st.error("⚠️ ADVERTENCIA: Esta acción eliminará al cliente de la base de datos. No se puede deshacer.")
+	confirmed = st.checkbox("Entiendo que esto es irreversible y deseo eliminar", key="delete_perm_confirm")
+	
+	if st.button("BORRAR DEFINITIVAMENTE", type="primary", disabled=not confirmed, key="delete_perm_submit"):
+		if delete_client_permanently(selected_id):
+			st.session_state["delete_permanent_success"] = "Cliente eliminado."
+			st.rerun()
+		else:
+			st.error("No se pudo eliminar el cliente.")

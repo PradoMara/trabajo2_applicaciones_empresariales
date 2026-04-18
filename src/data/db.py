@@ -620,6 +620,18 @@ def reactivate_client(client_id: str) -> bool:
 	return cursor.rowcount > 0
 
 
+def delete_client_permanently(client_id: str) -> bool:
+	"""Elimina físicamente un cliente de la base de datos."""
+	with get_connection() as connection:
+		cursor = connection.execute(
+			"DELETE FROM clients WHERE id = ?",
+			(client_id,),
+		)
+		connection.commit()
+
+	return cursor.rowcount > 0
+
+
 def get_client_audit_log(client_id: str) -> list[dict[str, str]]:
 	with get_connection() as connection:
 		rows = connection.execute(
