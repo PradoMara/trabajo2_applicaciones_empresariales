@@ -13,6 +13,7 @@ from views.list_view import render_list_view
 from views.reactivate_view import render_reactivate_view
 from views.register_view import render_register_view
 from views.update_view import render_update_view
+from views.stats_view import render_stats_view
 
 
 def main() -> None:
@@ -21,11 +22,13 @@ def main() -> None:
     apply_theme()
 
     render_header()
-    render_metrics()
 
-    tab_registrar, tab_actualizar, tab_obtener, tab_desactivar, tab_reactivar, tab_eliminar, tab_historial, tab_listado = st.tabs(
-        ["Registrar", "Actualizar", "Obtener", "Desactivar", "Reactivar", "Eliminar", "Historial", "Ver clientes"]
+    tab_stats, tab_registrar, tab_actualizar, tab_obtener, tab_desactivar, tab_reactivar, tab_eliminar, tab_historial, tab_listado = st.tabs(
+        ["📈 Estadísticas", "Registrar", "Actualizar", "Obtener", "Desactivar", "Reactivar", "Eliminar", "Historial", "Ver clientes"]
     )
+
+    with tab_stats:
+        render_stats_view()
 
     with tab_registrar:
         render_register_view()

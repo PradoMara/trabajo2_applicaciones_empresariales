@@ -313,6 +313,29 @@ def get_metrics() -> dict[str, int]:
 	}
 
 
+def get_client_stats() -> dict[str, list]:
+	"""Obtiene datos agrupados para visualización (Dashboard)."""
+	with get_connection() as connection:
+		# Estados
+		status_counts = connection.execute(
+			"SELECT status, COUNT(*) FROM clients GROUP BY status"
+		).fetchall()
+		
+		# Tipos de cliente
+		type_counts = connection.execute(
+			"SELECT client_type, COUNT(*) FROM clients GROUP BY client_type"
+		).fetchall()
+
+	return {
+		"status": [
+			{"label": row[0], "value": row[1]} for row in status_counts
+		],
+		"types": [
+			{"label": row[0], "value": row[1]} for row in type_counts
+		]
+	}
+
+
 def list_client_options() -> list[dict[str, str]]:
 	with get_connection() as connection:
 		rows = connection.execute(
