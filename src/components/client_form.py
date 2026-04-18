@@ -3,6 +3,9 @@ import streamlit as st
 
 from data.db import (
 	CLIENT_TYPE_OPTIONS,
+	check_email_exists,
+	check_name_exists,
+	check_phone_exists,
 	create_client,
 	deactivate_client,
 	delete_client_permanently,
@@ -113,10 +116,17 @@ def render_register_form() -> None:
 					st.error("El nombre no puede incluir números salvo que marques que es empresa.")
 				else:
 					st.error("El nombre solo puede contener letras, números (si es empresa), espacios y puntos.")
-		
+			elif check_name_exists(name):
+				st.warning("⚠️ Ya existe un cliente con este nombre exactamente.")
+
 		email = st.text_input("Correo electronico", key="register_email")
-		if email and not _is_valid_email(email):
-			st.error("El formato del correo no es válido.")
+		if email:
+			if not _is_valid_email(email):
+				st.error("El formato del correo no es válido.")
+			elif check_email_exists(email):
+				st.error("⚠️ Este correo ya está registrado. Por favor, utiliza otro.")
+			else:
+				st.success("✅ Correo disponible.")
 
 		phone = st.text_input("Telefono", key="register_phone")
 		if phone:
@@ -128,6 +138,8 @@ def render_register_form() -> None:
 				st.error("El telefono debe contener unicamente numeros (o empezar con '+').")
 			elif len(phone_cleaned) <= 8:
 				st.warning("El telefono debe tener mas de 8 digitos.")
+			elif check_phone_exists(phone):
+				st.warning("⚠️ Este número de teléfono ya está registrado por otro cliente.")
 
 	with c2:
 		st.info("El ID se asigna automaticamente al registrar.")
@@ -226,10 +238,17 @@ def render_update_form() -> None:
 					st.error("El nombre no puede incluir números salvo que marques que es empresa.")
 				else:
 					st.error("El nombre solo puede contener letras, números (si es empresa), espacios y puntos.")
+			elif name.strip() != selected_client["name"] and check_name_exists(name):
+				st.warning("⚠️ Este nombre ya está registrado para otro cliente.")
 		
 		email = st.text_input("Nuevo correo", key="update_email")
-		if email and not _is_valid_email(email):
-			st.error("El formato del correo no es válido.")
+		if email:
+			if not _is_valid_email(email):
+				st.error("El formato del correo no es válido.")
+			elif check_email_exists(email, exclude_id=selected_id):
+				st.error("⚠️ Este correo ya está siendo usado por otro cliente.")
+			elif email.strip() != selected_client["email"]:
+				st.success("✅ Correo nuevo disponible.")
 
 	with c2:
 		phone = st.text_input("Nuevo telefono", key="update_phone")
@@ -242,6 +261,8 @@ def render_update_form() -> None:
 				st.error("El telefono debe contener unicamente numeros (o empezar con '+').")
 			elif len(phone_cleaned) <= 8:
 				st.warning("El telefono debe tener mas de 8 digitos.")
+			elif phone_cleaned != selected_client["phone"].replace(" ", "") and check_phone_exists(phone, exclude_id=selected_id):
+				st.warning("⚠️ Este número ya está registrado por otro cliente.")
 		st.selectbox("Nuevo tipo", list(CLIENT_TYPE_OPTIONS), key="update_type")
 		st.selectbox("Nuevo estado", ["Activo", "Pendiente", "Inactivo"], key="update_status")
 

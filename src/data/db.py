@@ -35,6 +35,57 @@ def get_connection() -> sqlite3.Connection:
 	return connection
 
 
+def check_email_exists(email: str, exclude_id: int | None = None) -> bool:
+	"""Verifica si un correo electrónico ya está registrado en la base de datos."""
+	with get_connection() as connection:
+		if exclude_id is not None:
+			row = connection.execute(
+				"SELECT 1 FROM clients WHERE email = ? AND id != ?",
+				(email.strip(), exclude_id),
+			).fetchone()
+		else:
+			row = connection.execute(
+				"SELECT 1 FROM clients WHERE email = ?",
+				(email.strip(),),
+			).fetchone()
+	return row is not None
+
+
+def check_name_exists(name: str, exclude_id: int | None = None) -> bool:
+	"""Verifica si un nombre de cliente ya está registrado."""
+	with get_connection() as connection:
+		if exclude_id is not None:
+			row = connection.execute(
+				"SELECT 1 FROM clients WHERE name = ? AND id != ?",
+				(name.strip(), exclude_id),
+			).fetchone()
+		else:
+			row = connection.execute(
+				"SELECT 1 FROM clients WHERE name = ?",
+				(name.strip(),),
+			).fetchone()
+	return row is not None
+
+
+def check_phone_exists(phone: str, exclude_id: int | None = None) -> bool:
+	"""Verifica si un número de teléfono ya está registrado."""
+	clean_phone = phone.replace(" ", "").strip()
+	if not clean_phone:
+		return False
+	with get_connection() as connection:
+		if exclude_id is not None:
+			row = connection.execute(
+				"SELECT 1 FROM clients WHERE REPLACE(phone, ' ', '') = ? AND id != ?",
+				(clean_phone, exclude_id),
+			).fetchone()
+		else:
+			row = connection.execute(
+				"SELECT 1 FROM clients WHERE REPLACE(phone, ' ', '') = ?",
+				(clean_phone,),
+			).fetchone()
+	return row is not None
+
+
 def init_db() -> None:
 	"""Create required tables if they do not exist yet."""
 	with get_connection() as connection:
@@ -465,6 +516,13 @@ def create_client(
 	if notes and len(notes.strip()) > 300:
 		return False, f"Las observaciones no pueden exceder los 300 caracteres. (Actual: {len(notes.strip())})", None
 
+	# Verificación de duplicados manual antes de insertar para dar mensajes claros
+	if check_name_exists(clean_name):
+		return False, f"Error: Ya existe un cliente registrado con el nombre '{clean_name}'.", None
+	
+	if check_phone_exists(phone):
+		return False, f"Error: El número de teléfono '{phone}' ya está registrado.", None
+
 	try:
 		with get_connection() as connection:
 			cursor = connection.execute(
@@ -519,6 +577,13 @@ def update_client(
 	# Validación de longitud de observaciones en backend 
 	if new_notes and len(new_notes) > 300:
 		return False, f"Las observaciones no pueden exceder los 300 caracteres. (Actual: {len(new_notes)})"
+
+	# Verificación de duplicados manual antes de actualizar
+	if new_name != current_client["name"] and check_name_exists(new_name):
+		return False, f"Error: Ya existe otro cliente con el nombre '{new_name}'."
+	
+	if new_phone != current_client["phone"] and check_phone_exists(new_phone, exclude_id=int(client_id)):
+		return False, f"Error: El teléfono '{new_phone}' ya está registrado en otro cliente."
 
 	previous_values = {
 		"name": current_client["name"],
