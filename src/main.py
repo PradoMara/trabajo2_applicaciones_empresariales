@@ -6,7 +6,7 @@ from components.metrics import render_metrics
 from data.db import init_db
 from styles.theme import apply_theme
 from views.audit_view import render_audit_view
-from views.delete_view import render_delete_view
+from views.deactivate_view import render_deactivate_view
 from views.get_view import render_get_view
 from views.list_view import render_list_view
 from views.reactivate_view import render_reactivate_view
@@ -22,8 +22,8 @@ def main() -> None:
     render_header()
     render_metrics()
 
-    tab_registrar, tab_actualizar, tab_obtener, tab_eliminar, tab_reactivar, tab_historial, tab_listado = st.tabs(
-        ["Registrar", "Actualizar", "Obtener", "Eliminar", "Reactivar", "Historial", "Ver clientes"]
+    tab_registrar, tab_actualizar, tab_obtener, tab_desactivar, tab_reactivar, tab_historial, tab_listado = st.tabs(
+        ["Registrar", "Actualizar", "Obtener", "Desactivar", "Reactivar", "Historial", "Ver clientes"]
     )
 
     with tab_registrar:
@@ -35,8 +35,8 @@ def main() -> None:
     with tab_obtener:
         render_get_view()
 
-    with tab_eliminar:
-        render_delete_view()
+    with tab_desactivar:
+        render_deactivate_view()
 
     with tab_reactivar:
         render_reactivate_view()

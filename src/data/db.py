@@ -562,7 +562,7 @@ def update_client(
 	return True, "Cliente actualizado correctamente."
 
 
-def delete_client(client_id: str) -> bool:
+def deactivate_client(client_id: str) -> bool:
 	current_client = get_client_by_id(client_id)
 	if current_client is None:
 		return False
@@ -584,7 +584,7 @@ def delete_client(client_id: str) -> bool:
 				changed_fields=["status"],
 				previous_values={"status": current_client["status"]},
 				new_values={"status": "Inactivo"},
-				reason="Cliente marcado como inactivo desde la pestaña Eliminar.",
+				reason="Cliente marcado como inactivo desde la pestaña Desactivar.",
 			)
 		connection.commit()
 

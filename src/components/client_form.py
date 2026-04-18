@@ -4,7 +4,7 @@ import streamlit as st
 from data.db import (
 	CLIENT_TYPE_OPTIONS,
 	create_client,
-	delete_client,
+	deactivate_client,
 	get_client_audit_log,
 	get_client_by_id,
 	list_all_client_options,
@@ -306,26 +306,26 @@ def render_update_form() -> None:
 			st.error(message)
 
 
-def render_delete_section() -> None:
-	_render_flash_message("delete_success")
+def render_deactivate_section() -> None:
+	_render_flash_message("deactivate_success")
 	options = list_client_options()
 	if not options:
-		st.info("No hay clientes disponibles para eliminar.")
+		st.info("No hay clientes disponibles para desactivar.")
 		return
 
 	labels = [item["label"] for item in options]
 	label_to_id = {item["label"]: item["id"] for item in options}
-	selected_label = st.selectbox("Seleccionar cliente para eliminar", labels, key="delete_client")
+	selected_label = st.selectbox("Seleccionar cliente para desactivar", labels, key="deactivate_client")
 	selected_id = label_to_id[selected_label]
 
 	st.warning("Esta accion marcara al cliente como Inactivo y dejara de mostrarse en el listado.")
-	confirmed = st.checkbox("Confirmo que deseo eliminar este cliente", key="delete_confirm")
-	if st.button("Eliminar cliente", type="primary", disabled=not confirmed, key="delete_submit"):
-		if delete_client(selected_id):
-			st.session_state["delete_success"] = "Cliente desactivado correctamente."
+	confirmed = st.checkbox("Confirmo que deseo desactivar este cliente", key="deactivate_confirm")
+	if st.button("Desactivar cliente", type="primary", disabled=not confirmed, key="deactivate_submit"):
+		if deactivate_client(selected_id):
+			st.session_state["deactivate_success"] = "Cliente desactivado correctamente."
 			st.rerun()
 		else:
-			st.error("No se pudo eliminar el cliente seleccionado.")
+			st.error("No se pudo desactivar el cliente seleccionado.")
 
 
 def render_reactivate_section() -> None:
